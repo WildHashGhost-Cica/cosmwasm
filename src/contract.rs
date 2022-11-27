@@ -5,7 +5,7 @@ use cw2::set_contract_version;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::{Config, CONFIG};
+use crate::state::{Config, CONFIG, Poll, POLLS};
 
 
 const CONTRACT_NAME: &str = "crates.io:cosmwasm";
@@ -34,12 +34,32 @@ pub fn instantiate(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
-    _deps: DepsMut,
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    msg: ExecuteMsg,
+) -> Result<Response, ContractError> {
+    match msg {
+        ExecuteMsg::CreatePoll { question } => execute_create_poll(deps, env, info, question),
+        
+    }
+}
+
+fn execute_create_poll(
+    deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
-    _msg: ExecuteMsg,
-) -> Result<Response, ContractError> {
-    unimplemented!()
+    question: String
+) -> Result<Response, ContractError>{
+
+    if POLLS.has(deps.storage, question.clone()){
+       return Err(ContractError::CustomError { val: "Key already taken".to_string() });
+    }
+
+    let poll = Poll{question: question.clone(), yes_vote:0, no_vote:0};
+    POLLS.save(deps.storage, question, &poll)?;
+
+    Ok(Response::new().add_attribute("action", "create_poll"))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

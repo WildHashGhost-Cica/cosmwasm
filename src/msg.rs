@@ -6,11 +6,16 @@ use serde::{Deserialize, Serialize};
 pub struct InstantiateMsg {
     pub admin_address : String,
 }
-
+//creating a poll
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    CustomMsg { val: String },
+    CreatePoll{
+        question: String,
+    },
+    // Vote{
+    //     choise: String,
+    // }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
