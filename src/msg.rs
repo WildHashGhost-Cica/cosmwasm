@@ -13,9 +13,10 @@ pub enum ExecuteMsg {
     CreatePoll{
         question: String,
     },
-    // Vote{
-    //     choise: String,
-    // }
+    Vote{
+        question: String,
+        choise: String,
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

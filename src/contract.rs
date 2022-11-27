@@ -41,6 +41,7 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::CreatePoll { question } => execute_create_poll(deps, env, info, question),
+        ExecuteMsg::Vote { question, choise } => execute_vote(deps, env, info, question, choise),
         
     }
 }
@@ -60,6 +61,35 @@ fn execute_create_poll(
     POLLS.save(deps.storage, question, &poll)?;
 
     Ok(Response::new().add_attribute("action", "create_poll"))
+}
+
+fn execute_vote(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    question: String,
+    choice: String,
+) -> Result<Response, ContractError>{
+    if !POLLS.has(deps.storage, question.clone()){
+        return Err(ContractError::CustomError { val: "Poll does not exist".to_string() });
+     }
+    let mut poll = POLLS.load(deps.storage, question.clone())?;
+
+    
+
+    
+    if choice != "yes" && choice != "no"{
+        return Err(ContractError::CustomError { val: "Unrecognised choice".to_string() });
+    } else {
+        if choice == "yes" {
+            poll.yes_vote += 1;
+        } else {
+            poll.no_vote += 1;
+        }
+        POLLS.save(deps.storage, question, &poll)?;
+
+        Ok(Response::new().add_attribute("action", "vote"))
+    }
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
