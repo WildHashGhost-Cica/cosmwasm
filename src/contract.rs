@@ -73,9 +73,10 @@ mod tests {
     use cosmwasm_std::attr;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 
-    use crate::msg::InstantiateMsg;
+    use crate::msg::{InstantiateMsg, self, ExecuteMsg};
 
     use super::instantiate;
+    use crate::contract::execute;
 
     
 
@@ -92,6 +93,27 @@ mod tests {
         let resp = instantiate(deps.as_mut(), env, info, msg).unwrap();
         assert_eq!(resp.attributes, vec![
             attr("action", "instantiate")
+        ]);
+    }
+
+    #[test]
+    fn test_create_poll(){
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let info = mock_info("addr", &[]);
+        let msg = InstantiateMsg{
+            admin_address: "addr".to_string()
+        };
+
+        let _resp = instantiate(deps.as_mut(), env.clone(), info.clone(), msg);
+
+        let msg = ExecuteMsg::CreatePoll { 
+            question: "Do you like Cosmos?".to_string()
+        };
+
+        let resp = execute(deps.as_mut(), env, info, msg).unwrap();
+        assert_eq!(resp.attributes, vec![
+            attr("action", "create_poll")
         ]);
     }
 }
