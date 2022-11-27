@@ -111,9 +111,18 @@ mod tests {
             question: "Do you like Cosmos?".to_string()
         };
 
-        let resp = execute(deps.as_mut(), env, info, msg).unwrap();
+        let resp = execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
         assert_eq!(resp.attributes, vec![
             attr("action", "create_poll")
         ]);
+
+        let msg = ExecuteMsg::CreatePoll { 
+            question: "Do you like Cosmos?".to_string()
+        };
+
+        let resp = execute(deps.as_mut(), env, info, msg).unwrap_err();
+        
+
+        
     }
 }
