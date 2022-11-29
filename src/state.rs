@@ -11,8 +11,8 @@ pub struct Config {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Poll {
     pub question: String,
-    pub yes_vote: u64,
-    pub no_vote: u64,
+    pub yes_votes: u64,
+    pub no_votes: u64,
 
 
 }

@@ -1,11 +1,12 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, to_binary};
 use cw2::set_contract_version;
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, GetPollResponse};
 use crate::state::{Config, CONFIG, Poll, POLLS};
+
 
 
 const CONTRACT_NAME: &str = "crates.io:cosmwasm";
@@ -57,7 +58,7 @@ fn execute_create_poll(
        return Err(ContractError::CustomError { val: "Key already taken".to_string() });
     }
 
-    let poll = Poll{question: question.clone(), yes_vote:0, no_vote:0};
+    let poll = Poll{question: question.clone(), yes_votes:0, no_votes:0};
     POLLS.save(deps.storage, question, &poll)?;
 
     Ok(Response::new().add_attribute("action", "create_poll"))
@@ -82,9 +83,9 @@ fn execute_vote(
         return Err(ContractError::CustomError { val: "Unrecognised choice".to_string() });
     } else {
         if choice == "yes" {
-            poll.yes_vote += 1;
+            poll.yes_votes += 1;
         } else {
-            poll.no_vote += 1;
+            poll.no_votes += 1;
         }
         POLLS.save(deps.storage, question, &poll)?;
 
@@ -93,20 +94,28 @@ fn execute_vote(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(_deps: Deps, _env: Env, _msg: QueryMsg) -> StdResult<Binary> {
-    unimplemented!()
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+    match msg {
+        QueryMsg::GetPoll { question } => query_get_poll(deps, env, question),
+        QueryMsg::GetConfig {  } => to_binary(&CONFIG.load(deps.storage)?),
+    }
+}
+fn query_get_poll(deps: Deps, _env: Env, question: String) -> StdResult<Binary>{
+    let poll = POLLS.may_load(deps.storage, question)?;
+    to_binary(&GetPollResponse{poll})
 }
 
 #[cfg(test)]
 mod tests {
     
-    use cosmwasm_std::attr;
+    use cosmwasm_std::{attr, from_binary, Addr};
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 
-    use crate::msg::{InstantiateMsg, self, ExecuteMsg};
+    use crate::msg::{InstantiateMsg, self, ExecuteMsg, QueryMsg, GetPollResponse};
 
     use super::instantiate;
-    use crate::contract::execute;
+    use crate::contract::{execute, query};
+    use crate::state::{Poll, Config};
 
     
 
@@ -120,10 +129,16 @@ mod tests {
         };
         //we call the instantiate function
 
-        let resp = instantiate(deps.as_mut(), env, info, msg).unwrap();
+        let resp = instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
         assert_eq!(resp.attributes, vec![
             attr("action", "instantiate")
         ]);
+
+        let msg = QueryMsg::GetConfig {  };
+        let resp = query(deps.as_ref(), env, msg).unwrap();
+        let config:Config = from_binary(&resp).unwrap();
+        assert_eq!(config, Config{admin_address: Addr::unchecked("addr")});
+
     }
 
     #[test]
@@ -145,6 +160,18 @@ mod tests {
         assert_eq!(resp.attributes, vec![
             attr("action", "create_poll")
         ]);
+
+        let msg = QueryMsg::GetPoll { 
+            question: "Do you like Cosmos?".to_string(),
+        };
+
+        let resp = query(deps.as_ref(), env.clone(), msg).unwrap();
+        let get_polls_response: GetPollResponse = from_binary(&resp).unwrap();
+        assert_eq!(get_polls_response, GetPollResponse{poll: Some(Poll{
+            question: "Do you like Cosmos?".to_string(),
+            yes_votes: 0,
+            no_votes: 0,
+        })});
 
         let msg = ExecuteMsg::CreatePoll { 
             question: "Do you like Cosmos?".to_string()
@@ -181,6 +208,18 @@ mod tests {
         assert_eq!(resp.attributes, vec![
             attr("action", "vote"),
         ]);
+
+        let msg = QueryMsg::GetPoll { 
+            question: "Do you like Cosmos?".to_string(),
+        };
+
+        let resp = query(deps.as_ref(), env.clone(), msg).unwrap();
+        let get_polls_response: GetPollResponse = from_binary(&resp).unwrap();
+        assert_eq!(get_polls_response, GetPollResponse{poll: Some(Poll{
+            question: "Do you like Cosmos?".to_string(),
+            yes_votes: 1,
+            no_votes: 0,
+        })});
 
         let msg = ExecuteMsg::Vote { 
             question: "Do you like ETH?".to_string(), 
