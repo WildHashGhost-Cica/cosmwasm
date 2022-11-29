@@ -150,9 +150,51 @@ mod tests {
             question: "Do you like Cosmos?".to_string()
         };
 
-        let resp = execute(deps.as_mut(), env, info, msg).unwrap_err();
+        let _resp = execute(deps.as_mut(), env, info, msg).unwrap_err();
         
 
         
+    }
+
+    #[test]
+    fn test_vote(){
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let info = mock_info("addr", &[]);
+        let msg = InstantiateMsg{
+            admin_address: "addr".to_string()
+        };
+
+        let _resp = instantiate(deps.as_mut(), env.clone(), info.clone(), msg);
+        
+        let msg = ExecuteMsg::CreatePoll { 
+            question: "Do you like Cosmos?".to_string()
+        };
+
+        let _resp = execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+
+        let msg = ExecuteMsg::Vote { 
+            question: "Do you like Cosmos?".to_string(), 
+            choise: "yes".to_string(),
+        };
+        let resp = execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+        assert_eq!(resp.attributes, vec![
+            attr("action", "vote"),
+        ]);
+
+        let msg = ExecuteMsg::Vote { 
+            question: "Do you like ETH?".to_string(), 
+            choise: "no".to_string(),
+        };
+        let _resp = execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap_err();
+        
+        let msg = ExecuteMsg::Vote { 
+            question: "Do you like Cosmos?".to_string(), 
+            choise: "Maybe".to_string(),
+        };
+        let _resp = execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap_err();
+        
+        
+
     }
 }
